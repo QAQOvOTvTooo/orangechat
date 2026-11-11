@@ -1,1 +1,84 @@
+name: Build OrangeChat APK
 
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - liquid-glass-ui
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Pull material-color-utilities submodule
+        run: |
+          rm -rf material3/material-color-utilities
+          git clone https://github.com/material-foundation/material-color-utilities.git material3/material-color-utilities
+          cd material3/material-color-utilities
+          git checkout 6fd88eb3e95ba1d457842e2a2bf847d06b3a018a || true
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Set up Node.js & pnpm (for web-ui)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm and web-ui dependencies
+        run: |
+          npm install -g pnpm
+          if [ -d "web-ui" ] && [ -f "web-ui/package.json" ]; then
+            cd web-ui && pnpm install
+          fi
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept Android SDK Licenses
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+
+      - name: Gradle Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+
+      - name: Generate Debug Keystore if missing
+        run: |
+          if [ ! -f "app/debug.keystore" ]; then
+            keytool -genkeypair -v \
+              -keystore app/debug.keystore \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+      - name: Build Debug APK
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: OrangeChat-LiquidGlass-APK
+          path: app/build/outputs/apk/debug/*.apk
