@@ -182,7 +182,8 @@ data class MessageDto(
     val finishedAt: String? = null,
     val modelId: String? = null,
     val usage: TokenUsage? = null,
-    val translation: String? = null
+    val translation: String? = null,
+    val isContextCheckpoint: Boolean = false
 )
 
 @Serializable
@@ -301,5 +302,6 @@ fun UIMessage.toDto() = MessageDto(
     finishedAt = finishedAt?.toString(),
     modelId = modelId?.toString(),
     usage = usage,
-    translation = translation
+    translation = translation,
+    isContextCheckpoint = isContextCheckpoint
 )

@@ -33,7 +33,9 @@ data class UIMessage(
     val finishedAt: LocalDateTime? = null,
     val modelId: Uuid? = null,
     val usage: TokenUsage? = null,
-    val translation: String? = null
+    val translation: String? = null,
+    // 压缩检查点：此消息是它之前全部历史的摘要，组装请求时从最后一个检查点开始取
+    val isContextCheckpoint: Boolean = false
 ) {
     private fun appendChunk(chunk: MessageChunk): UIMessage {
         val choice = chunk.choices.getOrNull(0)
@@ -153,13 +155,15 @@ data class UIMessage(
         } ?: this
     }
 
-    fun summaryAsText(): String {
-        return "[${role.name}]: " + parts.joinToString(separator = "\n") { part ->
+    fun summaryAsText(maxLength: Int = Int.MAX_VALUE): String {
+        val text = parts.joinToString(separator = "\n") { part ->
             when (part) {
                 is UIMessagePart.Text -> part.text
                 else -> ""
             }
         }
+        val truncated = if (text.length > maxLength) text.take(maxLength) + "..." else text
+        return "[${role.name}]: $truncated"
     }
 
     fun toText() = parts.joinToString(separator = "\n") { part ->
@@ -276,7 +280,19 @@ fun List<UIMessagePart>.isEmptyUIMessage(): Boolean {
     }
 }
 
+/**
+ * 截取实际发送给模型的上下文
+ *
+ * 先丢弃最后一个压缩检查点之前的消息(它们只保留给用户查看), 再按 [size] 限制条数。
+ * 检查点本身是被压缩历史的唯一来源, 始终保留, 条数限制只作用于它之后的消息。
+ */
 fun List<UIMessage>.limitContext(size: Int): List<UIMessage> {
+    val checkpointIndex = indexOfLast { it.isContextCheckpoint }
+    if (checkpointIndex < 0) return limitMessageCount(size)
+    return listOf(this[checkpointIndex]) + subList(checkpointIndex + 1, this.size).limitMessageCount(size)
+}
+
+private fun List<UIMessage>.limitMessageCount(size: Int): List<UIMessage> {
     if (size <= 0 || this.size <= size) return this
 
     val startIndex = this.size - size

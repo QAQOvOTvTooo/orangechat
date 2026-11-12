@@ -1227,4 +1227,9 @@ mDNS 地址：使用 .local 主机名，同一网络中的其他设备可通过�
 
   <string name="plugin_security_banner">⚠ 插件可执行网络请求并访问您已授权的系统数据。请仅从可信来源安装插件。</string>
   <string name="web_server_security_warning_no_jwt">⚠ 未启用 JWT 鉴权或密码为空。当前任何可访问该地址的人都能读取您的对话记录，强烈建议立即设置密码并开启 JWT。</string>
+  <string name="chat_page_compress_checkpoint_title">以上内容已压缩为摘要</string>
+  <string name="chat_page_compress_checkpoint_hint">分隔线以上的消息不再发送给模型，由这份摘要代替。删除摘要即可恢复发送完整历史。</string>
+  <string name="chat_page_compress_blocked_generating">请先停止生成再压缩上下文</string>
+  <string name="chat_page_compress_conversation_changed">对话在压缩期间发生变化，请重试</string>
+  <string name="chat_page_compress_pending_tools">请先处理待审批的工具调用，或保留包含它的最近消息后再压缩</string>
 </resources>

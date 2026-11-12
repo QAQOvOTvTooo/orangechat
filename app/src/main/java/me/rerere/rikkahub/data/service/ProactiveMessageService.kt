@@ -563,11 +563,7 @@ class ProactiveMessageTriggerService : android.app.Service(), KoinComponent {
 
                 // 获取历史消息（先过滤掉悬空的工具调用消息，避免 tool_use 结构不完整触发 400）
                 val historyMessages = filterInvalidToolMessages(
-                    conversation?.currentMessages?.let {
-                        if (assistant.contextMessageSize > 0) {
-                            it.takeLast(assistant.contextMessageSize)
-                        } else it
-                    } ?: emptyList()
+                    conversation?.currentMessages?.limitContext(assistant.contextMessageSize) ?: emptyList()
                 )
 
                 // 构建系统提示词（包含记忆 + 上下文，都放在最后面避免被网关淹没）
