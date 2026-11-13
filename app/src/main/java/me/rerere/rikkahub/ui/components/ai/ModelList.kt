@@ -214,7 +214,7 @@ fun ModelSelector(
 }
 
 @Composable
-internal fun ModelList(
+internal fun ColumnScope.ModelList(
     currentModel: Uuid? = null,
     providers: List<ProviderSetting>,
     modelType: ModelType,
