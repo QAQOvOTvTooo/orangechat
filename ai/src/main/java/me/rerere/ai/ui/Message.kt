@@ -33,6 +33,8 @@ data class UIMessage(
     val finishedAt: LocalDateTime? = null,
     val modelId: Uuid? = null,
     val usage: TokenUsage? = null,
+    // 最后一次请求结束时的上下文占用（prompt + completion），usage 是多步累计值，不能用来看上下文大小
+    val contextTokens: Int? = null,
     val translation: String? = null,
     // 压缩检查点：此消息是它之前全部历史的摘要，组装请求时从最后一个检查点开始取
     val isContextCheckpoint: Boolean = false

@@ -597,7 +597,10 @@ class GenerationHandler(
                 it.usage?.let { usage ->
                     messages = messages.mapIndexed { index, message ->
                         if (index == messages.lastIndex) {
-                            message.copy(usage = message.usage.merge(usage))
+                            message.copy(
+                                usage = message.usage.merge(usage),
+                                contextTokens = usage.promptTokens + usage.completionTokens,
+                            )
                         } else {
                             message
                         }
@@ -624,7 +627,8 @@ class GenerationHandler(
                 messages = messages.mapIndexed { index, message ->
                     if (index == messages.lastIndex) {
                         message.copy(
-                            usage = message.usage.merge(usage)
+                            usage = message.usage.merge(usage),
+                            contextTokens = usage.promptTokens + usage.completionTokens,
                         )
                     } else {
                         message
@@ -634,7 +638,7 @@ class GenerationHandler(
             onUpdateMessages(messages)
         }
     }
- 
+
     fun translateText(
         settings: Settings,
         sourceText: String,

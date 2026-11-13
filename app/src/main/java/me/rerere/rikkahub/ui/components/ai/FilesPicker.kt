@@ -19,8 +19,10 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -61,6 +63,7 @@ import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.datastore.findProvider
 import me.rerere.rikkahub.data.model.Assistant
 import me.rerere.rikkahub.data.model.Conversation
+import me.rerere.rikkahub.data.model.lastContextTokens
 import me.rerere.rikkahub.ui.components.ui.ExtensionSelector
 import me.rerere.rikkahub.ui.components.ui.permission.PermissionCamera
 import me.rerere.rikkahub.ui.components.ui.permission.PermissionManager
@@ -71,6 +74,7 @@ import me.rerere.rikkahub.ui.context.LocalNavController
 import me.rerere.rikkahub.ui.context.LocalProviders
 import me.rerere.rikkahub.ui.context.LocalSettings
 import me.rerere.rikkahub.ui.hooks.ChatInputState
+import me.rerere.rikkahub.utils.formatNumber
 
 @Composable
 internal fun FilesPicker(
@@ -175,12 +179,33 @@ internal fun FilesPicker(
                 Text(stringResource(R.string.chat_page_compress_context))
             },
             trailingContent = {
-                if (conversation.messageNodes.isNotEmpty()) {
-                    Text(
-                        text = stringResource(R.string.chat_page_message_count, conversation.messageNodes.size),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                val contextTokens = remember(conversation.messageNodes) {
+                    conversation.lastContextTokens()
+                }
+                val contextLength = currentChatModel?.contextLength?.takeIf { it > 0 }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Column(horizontalAlignment = Alignment.End) {
+                        if (conversation.messageNodes.isNotEmpty()) {
+                            Text(
+                                text = stringResource(R.string.chat_page_message_count, conversation.messageNodes.size),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        if (contextTokens != null && contextLength != null) {
+                            Text(
+                                text = "${contextTokens.formatNumber()} / ${contextLength.formatNumber()}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    if (contextTokens != null && contextLength != null) {
+                        ContextUsageRing(fraction = contextTokens.toFloat() / contextLength)
+                    }
                 }
             },
             modifier = Modifier
@@ -359,6 +384,23 @@ private fun BigIconTextButton(
             text()
         }
     }
+}
+
+// 上下文使用量进度环，接近上限时变色提醒压缩
+@Composable
+private fun ContextUsageRing(fraction: Float) {
+    val color = when {
+        fraction >= 0.9f -> MaterialTheme.colorScheme.error
+        fraction >= 0.7f -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.primary
+    }
+    CircularProgressIndicator(
+        progress = { fraction.coerceIn(0f, 1f) },
+        modifier = Modifier.size(24.dp),
+        color = color,
+        strokeWidth = 3.dp,
+        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+    )
 }
 
 @Preview(showBackground = true)

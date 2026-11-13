@@ -1172,4 +1172,7 @@
   <string name="chat_page_compress_blocked_generating">請先停止生成再壓縮上下文</string>
   <string name="chat_page_compress_conversation_changed">對話在壓縮期間發生變化，請重試</string>
   <string name="chat_page_compress_pending_tools">請先處理待審批的工具呼叫，或保留包含它的最近訊息後再壓縮</string>
+  <string name="chat_page_compress_keep_recent_desc">這些訊息不會被壓縮，並保留在摘要之後。設為 0 會壓縮全部內容，最能有效重用提示詞快取；如果對話太長而無法壓縮，請保留更多訊息。</string>
+  <string name="setting_provider_page_context_length">上下文長度</string>
+  <string name="setting_provider_page_context_length_custom">自訂</string>
 </resources>
