@@ -115,6 +115,7 @@ import me.rerere.hugeicons.stroke.ArrowUp01
 import me.rerere.hugeicons.stroke.Brain02
 import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.LeftToRightListBullet
+import me.rerere.hugeicons.stroke.LookTop
 import me.rerere.hugeicons.stroke.Menu03
 import me.rerere.hugeicons.stroke.Message01
 import me.rerere.hugeicons.stroke.MessageAdd01
@@ -869,9 +870,11 @@ private fun TopBar(
     val model = settings.getCurrentChatModel()
     val provider = model?.findProvider(providers = settings.providers, checkOverwrite = false)
     val assistantDisplayName = assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) }
+    val windowTitle = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) }
     val editTitleWarning = stringResource(R.string.chat_page_edit_title_warning)
 
     CenterAlignedTopAppBar(
+        expandedHeight = 44.dp,
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
         navigationIcon = {
             if (!bigScreen) {
@@ -894,12 +897,12 @@ private fun TopBar(
                     color = Color.Transparent,
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Text(
-                            text = assistantDisplayName,
+                            text = windowTitle,
                             maxLines = 1,
                             style = MaterialTheme.typography.titleMedium,
                             overflow = TextOverflow.Ellipsis,
@@ -927,7 +930,7 @@ private fun TopBar(
                             .padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        // 窗口名字行（点击可修改标题）
+                        // 1. 编辑窗口名字按钮行
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -945,37 +948,64 @@ private fun TopBar(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             Icon(
-                                imageVector = HugeIcons.Message01,
+                                imageVector = HugeIcons.PencilEdit01,
+                                contentDescription = stringResource(R.string.chat_page_edit_title),
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.chat_page_edit_title),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(
+                                    text = windowTitle,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                        )
+
+                        // 2. 当前助手名字行
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp, horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Icon(
+                                imageVector = HugeIcons.LookTop,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
                                 tint = MaterialTheme.colorScheme.primary,
                             )
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "当前窗口",
+                                    text = stringResource(R.string.assistant_page_title),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 Text(
-                                    text = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
+                                    text = assistantDisplayName,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    maxLines = 2,
+                                    maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
                             }
-                            Icon(
-                                imageVector = HugeIcons.PencilEdit01,
-                                contentDescription = stringResource(R.string.chat_page_edit_title),
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
                         }
 
                         if (model != null) {
                             HorizontalDivider(
                                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                             )
-                            // 模型与来源行
+                            // 3. 模型与供应商行
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
