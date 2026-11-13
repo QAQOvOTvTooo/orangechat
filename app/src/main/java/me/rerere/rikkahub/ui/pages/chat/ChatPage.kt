@@ -20,15 +20,28 @@ import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -40,7 +53,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.adaptive.currentWindowDpSize
 import androidx.compose.material3.rememberDrawerState
@@ -53,7 +65,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -96,10 +110,16 @@ import kotlinx.coroutines.withContext
 import me.rerere.ai.provider.Model
 import me.rerere.ai.ui.UIMessagePart
 import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.ArrowDown01
+import me.rerere.hugeicons.stroke.ArrowUp01
+import me.rerere.hugeicons.stroke.Brain02
 import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.LeftToRightListBullet
 import me.rerere.hugeicons.stroke.Menu03
+import me.rerere.hugeicons.stroke.Message01
 import me.rerere.hugeicons.stroke.MessageAdd01
+import me.rerere.hugeicons.stroke.MoreVertical
+import me.rerere.hugeicons.stroke.PencilEdit01
 import me.rerere.hugeicons.stroke.Voice
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.Screen
@@ -123,6 +143,8 @@ import me.rerere.rikkahub.ui.hooks.ChatInputState
 import me.rerere.rikkahub.ui.hooks.EditStateContent
 import me.rerere.rikkahub.ui.hooks.useEditState
 import me.rerere.rikkahub.ui.theme.LocalMaterialMode
+import me.rerere.rikkahub.ui.theme.materialModeBorderStroke
+import me.rerere.rikkahub.ui.theme.popupContainerColor
 import me.rerere.rikkahub.utils.base64Decode
 import me.rerere.rikkahub.utils.navigateToChatPage
 import org.koin.androidx.compose.koinViewModel
@@ -841,8 +863,15 @@ private fun TopBar(
     val titleState = useEditState<String> {
         onUpdateTitle(it)
     }
+    var showTitlePopup by remember { mutableStateOf(false) }
+    var showActionsPopup by remember { mutableStateOf(false) }
+    val assistant = settings.getCurrentAssistant()
+    val model = settings.getCurrentChatModel()
+    val provider = model?.findProvider(providers = settings.providers, checkOverwrite = false)
+    val assistantDisplayName = assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) }
+    val editTitleWarning = stringResource(R.string.chat_page_edit_title_warning)
 
-    TopAppBar(
+    CenterAlignedTopAppBar(
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
         navigationIcon = {
             if (!bigScreen) {
@@ -856,64 +885,179 @@ private fun TopBar(
             }
         },
         title = {
-            val editTitleWarning = stringResource(R.string.chat_page_edit_title_warning)
-            Surface(
-                onClick = {
-                    if (conversation.messageNodes.isNotEmpty()) {
-                        titleState.open(conversation.title)
-                    } else {
-                        toaster.show(editTitleWarning, type = ToastType.Warning)
-                    }
-                },
-                color = Color.Transparent,
-            ) {
-                Column {
-                    val assistant = settings.getCurrentAssistant()
-                    val model = settings.getCurrentChatModel()
-                    val provider = model?.findProvider(providers = settings.providers, checkOverwrite = false)
-                    Text(
-                        text = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
-                        maxLines = 1,
-                        style = MaterialTheme.typography.bodyMedium,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    if (model != null && provider != null) {
+            Box {
+                Surface(
+                    onClick = {
+                        showTitlePopup = !showTitlePopup
+                    },
+                    shape = RoundedCornerShape(50),
+                    color = Color.Transparent,
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
                         Text(
-                            text = "${assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) }} / ${model.displayName} (${provider.name})",
-                            overflow = TextOverflow.Ellipsis,
+                            text = assistantDisplayName,
                             maxLines = 1,
-                            color = LocalContentColor.current.copy(0.65f),
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 8.sp,
-                            )
+                            style = MaterialTheme.typography.titleMedium,
+                            overflow = TextOverflow.Ellipsis,
                         )
+                        Icon(
+                            imageVector = if (showTitlePopup) HugeIcons.ArrowUp01 else HugeIcons.ArrowDown01,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = LocalContentColor.current.copy(alpha = 0.6f),
+                        )
+                    }
+                }
+
+                DropdownMenu(
+                    expanded = showTitlePopup,
+                    onDismissRequest = { showTitlePopup = false },
+                    shape = RoundedCornerShape(18.dp),
+                    containerColor = popupContainerColor(MaterialTheme.colorScheme.surfaceContainer),
+                    border = materialModeBorderStroke(),
+                    modifier = Modifier.widthIn(min = 240.dp, max = 320.dp),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        // 窗口名字行（点击可修改标题）
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable {
+                                    showTitlePopup = false
+                                    if (conversation.messageNodes.isNotEmpty()) {
+                                        titleState.open(conversation.title)
+                                    } else {
+                                        toaster.show(editTitleWarning, type = ToastType.Warning)
+                                    }
+                                }
+                                .padding(vertical = 4.dp, horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Icon(
+                                imageVector = HugeIcons.Message01,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "当前窗口",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(
+                                    text = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            Icon(
+                                imageVector = HugeIcons.PencilEdit01,
+                                contentDescription = stringResource(R.string.chat_page_edit_title),
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+
+                        if (model != null) {
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                            )
+                            // 模型与来源行
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 2.dp, horizontal = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                Icon(
+                                    imageVector = HugeIcons.Brain02,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = if (provider != null) "模型 · ${provider.name}" else "模型",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Text(
+                                        text = model.displayName,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
         },
         actions = {
-            IconButton(
-                onClick = {
-                    onVoiceCall()
+            Box {
+                IconButton(
+                    onClick = {
+                        showActionsPopup = !showActionsPopup
+                    }
+                ) {
+                    Icon(
+                        imageVector = if (previewMode) HugeIcons.Cancel01 else HugeIcons.MoreVertical,
+                        contentDescription = stringResource(R.string.more_options),
+                    )
                 }
-            ) {
-                Icon(HugeIcons.Voice, "Voice Call")
-            }
 
-            IconButton(
-                onClick = {
-                    onClickMenu()
+                DropdownMenu(
+                    expanded = showActionsPopup,
+                    onDismissRequest = { showActionsPopup = false },
+                    shape = RoundedCornerShape(16.dp),
+                    containerColor = popupContainerColor(MaterialTheme.colorScheme.surfaceContainer),
+                    border = materialModeBorderStroke(),
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("语音通话") },
+                        leadingIcon = { Icon(HugeIcons.Voice, contentDescription = null) },
+                        onClick = {
+                            showActionsPopup = false
+                            onVoiceCall()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(if (previewMode) "退出消息预览" else "消息目录与搜索") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = if (previewMode) HugeIcons.Cancel01 else HugeIcons.LeftToRightListBullet,
+                                contentDescription = null
+                            )
+                        },
+                        onClick = {
+                            showActionsPopup = false
+                            onClickMenu()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.chat_page_new_chat)) },
+                        leadingIcon = { Icon(HugeIcons.MessageAdd01, contentDescription = null) },
+                        onClick = {
+                            showActionsPopup = false
+                            onNewChat()
+                        }
+                    )
                 }
-            ) {
-                Icon(if (previewMode) HugeIcons.Cancel01 else HugeIcons.LeftToRightListBullet, "Chat Options")
-            }
-
-            IconButton(
-                onClick = {
-                    onNewChat()
-                }
-            ) {
-                Icon(HugeIcons.MessageAdd01, "New Message")
             }
         },
     )

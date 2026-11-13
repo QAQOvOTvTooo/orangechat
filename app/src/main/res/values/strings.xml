@@ -235,7 +235,7 @@
   <string name="cancel_edit">Cancel Edit</string>
   <string name="chain_of_thought_collapse">Collapse</string>
   <string name="chain_of_thought_show_more_steps">Show %d more steps</string>
-  <string name="chat_input_placeholder">Chat with AI</string>
+  <string name="chat_input_placeholder">⟡ 思念送達中······ Load ♡ 52% ⟡</string>
   <string name="chat_input_unsupported_file_type">Unsupported file type: %s</string>
   <string name="chat_message_add_favorite">Add Favorite</string>
   <string name="chat_message_remove_favorite">Remove Favorite</string>

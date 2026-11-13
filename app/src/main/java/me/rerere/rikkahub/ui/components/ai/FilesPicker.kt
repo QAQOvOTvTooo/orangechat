@@ -18,12 +18,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -33,6 +35,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -55,18 +58,32 @@ import androidx.compose.ui.unit.dp
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.util.fastAny
+import androidx.compose.ui.util.fastFilter
+import me.rerere.ai.core.ReasoningLevel
+import me.rerere.ai.provider.BuiltInTools
+import me.rerere.ai.provider.Model
+import me.rerere.ai.provider.ModelAbility
+import me.rerere.ai.provider.ModelType
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.AiSearch02
 import me.rerere.hugeicons.stroke.ArrowRight01
+import me.rerere.hugeicons.stroke.Brain02
 import me.rerere.hugeicons.stroke.Camera01
 import me.rerere.hugeicons.stroke.Codesandbox
 import me.rerere.hugeicons.stroke.ComputerTerminal01
 import me.rerere.hugeicons.stroke.Files02
 import me.rerere.hugeicons.stroke.Folder01
+import me.rerere.hugeicons.stroke.Idea
+import me.rerere.hugeicons.stroke.Idea01
 import me.rerere.hugeicons.stroke.Image02
 import me.rerere.hugeicons.stroke.MusicNote03
 import me.rerere.hugeicons.stroke.Package
 import me.rerere.hugeicons.stroke.Package01
+import me.rerere.hugeicons.stroke.Search01
 import me.rerere.hugeicons.stroke.Settings02
 import me.rerere.hugeicons.stroke.Video01
 import me.rerere.rikkahub.R
@@ -79,7 +96,11 @@ import me.rerere.rikkahub.data.model.Assistant
 import me.rerere.rikkahub.data.model.Conversation
 import me.rerere.rikkahub.data.model.lastContextTokens
 import me.rerere.rikkahub.data.repository.WorkspaceRepository
+import me.rerere.rikkahub.ui.components.ui.AutoAIIcon
 import me.rerere.rikkahub.ui.components.ui.ExtensionSelector
+import me.rerere.rikkahub.ui.components.ui.icons.ReasoningHigh
+import me.rerere.rikkahub.ui.components.ui.icons.ReasoningLow
+import me.rerere.rikkahub.ui.components.ui.icons.ReasoningMedium
 import me.rerere.rikkahub.ui.components.ui.permission.PermissionCamera
 import me.rerere.rikkahub.ui.components.ui.permission.PermissionManager
 import me.rerere.rikkahub.ui.components.ui.permission.rememberPermissionState
@@ -89,6 +110,7 @@ import me.rerere.rikkahub.ui.context.LocalNavController
 import me.rerere.rikkahub.ui.context.LocalProviders
 import me.rerere.rikkahub.ui.context.LocalSettings
 import me.rerere.rikkahub.ui.hooks.ChatInputState
+import me.rerere.rikkahub.ui.theme.popupContainerColor
 import me.rerere.rikkahub.utils.formatNumber
 import me.rerere.workspace.WorkspaceShellStatus
 import org.koin.compose.koinInject
@@ -99,6 +121,10 @@ internal fun FilesPicker(
     assistant: Assistant,
     state: ChatInputState,
     mcpManager: McpManager,
+    enableSearch: Boolean,
+    onToggleSearch: (Boolean) -> Unit,
+    onUpdateSearchService: (Int) -> Unit,
+    onUpdateChatModel: (Model) -> Unit,
     onCompressContext: (additionalPrompt: String, targetTokens: Int, keepRecentMessages: Int) -> Job,
     onUpdateAssistant: (Assistant) -> Unit,
     onUpdateWorkspaceCwd: (String?) -> Unit = {},
@@ -128,6 +154,9 @@ internal fun FilesPicker(
     }
     val showCwd = boundWorkspace != null && boundWorkspace.shellStatus == WorkspaceShellStatus.READY.name
     var showCwdSheet by remember { mutableStateOf(false) }
+    var showModelSheet by remember { mutableStateOf(false) }
+    var showSearchSheet by remember { mutableStateOf(false) }
+    var showReasoningSheet by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -157,6 +186,154 @@ internal fun FilesPicker(
         HorizontalDivider(
             modifier = Modifier.fillMaxWidth()
         )
+
+        // 1. 聊天模型选择
+        ListItem(
+            leadingContent = {
+                if (currentChatModel != null) {
+                    AutoAIIcon(
+                        name = currentChatModel.modelId,
+                        modifier = Modifier.size(24.dp),
+                        color = Color.Transparent,
+                    )
+                } else {
+                    Icon(
+                        imageVector = HugeIcons.Brain02,
+                        contentDescription = stringResource(R.string.setting_model_page_chat_model),
+                    )
+                }
+            },
+            headlineContent = {
+                Text(stringResource(R.string.setting_model_page_chat_model))
+            },
+            supportingContent = {
+                Text(
+                    text = buildString {
+                        append(currentChatModel?.displayName ?: stringResource(R.string.model_list_select_model))
+                        if (provider != null) {
+                            append(" · ")
+                            append(provider.name)
+                        }
+                    },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            },
+            trailingContent = {
+                Icon(
+                    imageVector = HugeIcons.ArrowRight01,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            modifier = Modifier
+                .clip(MaterialTheme.shapes.large)
+                .clickable { showModelSheet = true },
+        )
+
+        // 2. 联网搜索
+        val isBuiltInSearch = currentChatModel?.tools?.contains(BuiltInTools.Search) == true
+        val currentSearchService = settings.searchServices.getOrNull(settings.searchServiceSelected)
+        ListItem(
+            leadingContent = {
+                if (isBuiltInSearch) {
+                    Icon(
+                        imageVector = HugeIcons.AiSearch02,
+                        contentDescription = stringResource(R.string.use_web_search),
+                    )
+                } else if (enableSearch && currentSearchService != null) {
+                    AutoAIIcon(
+                        name = currentSearchService.displayName,
+                        modifier = Modifier.size(24.dp),
+                        color = Color.Transparent,
+                    )
+                } else {
+                    Icon(
+                        imageVector = HugeIcons.Search01,
+                        contentDescription = stringResource(R.string.use_web_search),
+                    )
+                }
+            },
+            headlineContent = {
+                Text(stringResource(R.string.use_web_search))
+            },
+            supportingContent = {
+                Text(
+                    text = when {
+                        isBuiltInSearch -> stringResource(R.string.built_in_search_title)
+                        enableSearch -> currentSearchService?.displayName ?: stringResource(R.string.web_search_enabled)
+                        else -> stringResource(R.string.web_search_disabled)
+                    },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            },
+            trailingContent = {
+                if (isBuiltInSearch) {
+                    Icon(
+                        imageVector = HugeIcons.ArrowRight01,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    Switch(
+                        checked = enableSearch,
+                        onCheckedChange = { onToggleSearch(it) },
+                    )
+                }
+            },
+            modifier = Modifier
+                .clip(MaterialTheme.shapes.large)
+                .clickable { showSearchSheet = true },
+        )
+
+        // 3. 思考推理级别
+        if (currentChatModel?.abilities?.contains(ModelAbility.REASONING) == true) {
+            val reasoningLevel = assistant.reasoningLevel
+            ListItem(
+                leadingContent = {
+                    Icon(
+                        imageVector = when (reasoningLevel) {
+                            ReasoningLevel.OFF -> HugeIcons.Idea
+                            ReasoningLevel.AUTO -> HugeIcons.Idea01
+                            ReasoningLevel.LOW -> ReasoningLow
+                            ReasoningLevel.MEDIUM -> ReasoningMedium
+                            ReasoningLevel.HIGH -> ReasoningHigh
+                            ReasoningLevel.XHIGH -> ReasoningHigh
+                        },
+                        contentDescription = stringResource(R.string.setting_provider_page_reasoning),
+                        tint = if (reasoningLevel.isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                headlineContent = {
+                    Text(stringResource(R.string.setting_provider_page_reasoning))
+                },
+                supportingContent = {
+                    Text(
+                        text = when (reasoningLevel) {
+                            ReasoningLevel.OFF -> stringResource(R.string.reasoning_off)
+                            ReasoningLevel.AUTO -> stringResource(R.string.reasoning_auto)
+                            ReasoningLevel.LOW -> stringResource(R.string.reasoning_light)
+                            ReasoningLevel.MEDIUM -> stringResource(R.string.reasoning_medium)
+                            ReasoningLevel.HIGH -> stringResource(R.string.reasoning_heavy)
+                            ReasoningLevel.XHIGH -> stringResource(R.string.reasoning_xhigh)
+                        },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
+                trailingContent = {
+                    Icon(
+                        imageVector = HugeIcons.ArrowRight01,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                modifier = Modifier
+                    .clip(MaterialTheme.shapes.large)
+                    .clickable { showReasoningSheet = true },
+            )
+        }
 
         // 工作区与工作目录快捷入口
         WorkspacePickerListItem(
@@ -322,6 +499,97 @@ internal fun FilesPicker(
         }, onConfirm = { additionalPrompt, targetTokens, keepRecentMessages ->
             onCompressContext(additionalPrompt, targetTokens, keepRecentMessages)
         })
+    }
+
+    // Model Selection Bottom Sheet
+    if (showModelSheet) {
+        val modelSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        val scope = rememberCoroutineScope()
+        ModalBottomSheet(
+            onDismissRequest = { showModelSheet = false },
+            sheetState = modelSheetState,
+            containerColor = popupContainerColor(BottomSheetDefaults.ContainerColor),
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(8.dp)
+                    .fillMaxHeight(0.8f)
+                    .imePadding(),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                val filteredProviderSettings = providers.fastFilter {
+                    it.enabled && it.models.fastAny { m -> m.type == ModelType.CHAT }
+                }
+                ModelList(
+                    currentModel = assistant.chatModelId ?: settings.chatModelId,
+                    providers = filteredProviderSettings,
+                    modelType = ModelType.CHAT,
+                    onSelect = {
+                        onUpdateChatModel(it)
+                        scope.launch {
+                            modelSheetState.hide()
+                            showModelSheet = false
+                        }
+                    },
+                    onDismiss = {
+                        scope.launch {
+                            modelSheetState.hide()
+                            showModelSheet = false
+                        }
+                    }
+                )
+            }
+        }
+    }
+
+    // Search Settings Bottom Sheet
+    if (showSearchSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showSearchSheet = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = popupContainerColor(BottomSheetDefaults.ContainerColor),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.7f)
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.search_picker_title),
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+
+                SearchPicker(
+                    enableSearch = enableSearch,
+                    settings = settings,
+                    onToggleSearch = onToggleSearch,
+                    onUpdateSearchService = onUpdateSearchService,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    model = currentChatModel,
+                    onDismiss = {
+                        showSearchSheet = false
+                    }
+                )
+            }
+        }
+    }
+
+    // Reasoning Picker Bottom Sheet
+    if (showReasoningSheet) {
+        ReasoningPicker(
+            reasoningLevel = assistant.reasoningLevel,
+            onDismissRequest = { showReasoningSheet = false },
+            onUpdateReasoningLevel = {
+                onUpdateAssistant(assistant.copy(reasoningLevel = it))
+            }
+        )
     }
 }
 

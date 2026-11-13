@@ -232,7 +232,7 @@
   <string name="cancel_edit">取消编辑</string>
   <string name="chain_of_thought_collapse">收起</string>
   <string name="chain_of_thought_show_more_steps">再显示 %d 步</string>
-  <string name="chat_input_placeholder">输入消息与AI聊天</string>
+  <string name="chat_input_placeholder">⟡ 思念送達中······ Load ♡ 52% ⟡</string>
   <string name="chat_input_unsupported_file_type">不支持的文件类型：%s</string>
   <string name="chat_message_add_favorite">添加收藏</string>
   <string name="chat_message_remove_favorite">取消收藏</string>
