@@ -130,8 +130,8 @@ fun SettingAboutPage() {
                         )
 
                         Text(
-                            text = "橘瓣",
-                            style = MaterialTheme.typography.displaySmall,
+                            text = "小猫电台",
+                            style = MaterialTheme.typography.headlineSmall
                         )
                     }
                 }
