@@ -413,6 +413,7 @@ private fun WorkspaceFilesPage(
             items(state.files, key = { it.path }) { entry ->
                 FileRow(
                     entry = entry,
+                    area = state.area,
                     onClick = { onOpen(entry) },
                     onDelete = { onDelete(entry) },
                     onExport = { onExport(entry) },
@@ -590,6 +591,7 @@ private fun PathBar(
 @Composable
 private fun FileRow(
     entry: WorkspaceFileEntry,
+    area: WorkspaceStorageArea,
     onClick: () -> Unit,
     onDelete: () -> Unit,
     onExport: () -> Unit = {},
@@ -655,13 +657,13 @@ private fun FileRow(
                                 text = {
                                     Text(
                                         stringResource(
-                                            if (state.area == WorkspaceStorageArea.FILES) R.string.edit else R.string.workspace_detail_tool_read_file
+                                            if (area == WorkspaceStorageArea.FILES) R.string.edit else R.string.workspace_detail_tool_read_file
                                         )
                                     )
                                 },
                                 leadingIcon = {
                                     Icon(
-                                        imageVector = if (state.area == WorkspaceStorageArea.FILES) HugeIcons.FileEdit else HugeIcons.FileView,
+                                        imageVector = if (area == WorkspaceStorageArea.FILES) HugeIcons.FileEdit else HugeIcons.FileView,
                                         contentDescription = null,
                                     )
                                 },
