@@ -34,7 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import me.rerere.rikkahub.ui.context.ToastType
+import com.dokar.sonner.ToastType
 import kotlinx.coroutines.launch
 import me.rerere.rikkahub.data.repository.WorkspaceRepository
 import me.rerere.rikkahub.ui.components.nav.BackButton
@@ -167,20 +167,23 @@ fun WorkspaceFileEditorPage(
                     .padding(innerPadding),
             )
 
-            else -> TextField(
-                state = textState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .imePadding(),
-                readOnly = !editable,
-                lineLimits = TextFieldLineLimits.MultiLine(),
-                textStyle = LocalTextStyle.current.copy(
+            else -> androidx.compose.runtime.CompositionLocalProvider(
+                LocalTextStyle provides LocalTextStyle.current.copy(
                     fontFamily = JetbrainsMono,
                     fontSize = 13.sp,
                     lineHeight = 18.sp,
-                ),
-            )
+                )
+            ) {
+                TextField(
+                    state = textState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .imePadding(),
+                    readOnly = !editable,
+                    lineLimits = TextFieldLineLimits.MultiLine(),
+                )
+            }
         }
     }
 }
