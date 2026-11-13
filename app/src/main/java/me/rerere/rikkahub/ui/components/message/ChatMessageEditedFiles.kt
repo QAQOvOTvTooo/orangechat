@@ -46,6 +46,9 @@ import kotlinx.serialization.json.jsonPrimitive
 import me.rerere.ai.ui.UIMessagePart
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.File02
+import me.rerere.hugeicons.stroke.FileEdit
+import me.rerere.rikkahub.Screen
+import me.rerere.rikkahub.ui.context.LocalNavController
 import me.rerere.hugeicons.stroke.FileImport
 import me.rerere.hugeicons.stroke.Share08
 import me.rerere.rikkahub.R
@@ -89,6 +92,7 @@ internal fun EditedFilesList(
     if (editedFiles.isEmpty()) return
 
     val context = LocalContext.current
+    val navController = LocalNavController.current
     val scope = rememberCoroutineScope()
     val workspaceRepository: WorkspaceRepository = koinInject()
 
@@ -179,6 +183,33 @@ internal fun EditedFilesList(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                Card(
+                    onClick = {
+                        val p = selectedPath ?: return@Card
+                        selectedPath = null
+                        val (area, relativePath) = resolveWorkspacePath(p)
+                        navController.navigate(Screen.WorkspaceFileEditor(workspaceId, area.name, relativePath))
+                    },
+                    shape = MaterialTheme.shapes.medium,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                    ) {
+                        Icon(
+                            imageVector = HugeIcons.FileEdit,
+                            contentDescription = null,
+                            modifier = Modifier.padding(4.dp),
+                        )
+                        Text(
+                            text = stringResource(R.string.edit),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
+                }
                 Card(
                     onClick = {
                         val p = selectedPath ?: return@Card

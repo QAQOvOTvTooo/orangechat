@@ -1092,4 +1092,16 @@ mDNSアドレス: .localホスト名を使用し、IPを知らなくても同じ
   <string name="chat_page_compress_keep_recent_desc">これらのメッセージは圧縮されず、要約の後に残ります。0 にするとすべてを圧縮し、プロンプトキャッシュを最も有効に再利用します。会話が長すぎて圧縮できない場合は、保持するメッセージを増やしてください。</string>
   <string name="setting_provider_page_context_length">コンテキスト長</string>
   <string name="setting_provider_page_context_length_custom">カスタム</string>
+  <string name="assistant_page_workspace">ワークスペース</string>
+  <string name="assistant_page_workspace_unbound">未バインド</string>
+  <string name="workspace_select">ワークスペースを選択</string>
+  <string name="workspace_no_binding">未バインド</string>
+  <string name="workspace_manage">ワークスペースを管理</string>
+  <string name="workspace_detail">ワークスペースの詳細</string>
+  <string name="workspace_terminal">ワークスペースターミナル</string>
+  <string name="workspace_cwd_select_directory">作業ディレクトリを選択</string>
+  <string name="workspace_cwd_select_desc">現在のセッションの作業ディレクトリを設定します</string>
+  <string name="workspace_cwd_no_subdirectories">サブディレクトリがありません</string>
+  <string name="workspace_cwd_reset">リセット</string>
+  <string name="workspace_cwd_set">CWDに設定</string>
 </resources>

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * 橘瓣 OrangeChat
  * 衍生自 RikkaHub (https://github.com/rikkahub/rikkahub)，原作者 RE
  * 本项目基于 GNU AGPL v3 开源，详见根目录 LICENSE 文件
@@ -21,10 +21,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -33,37 +36,49 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlin.uuid.Uuid
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.ArrowRight01
 import me.rerere.hugeicons.stroke.Camera01
+import me.rerere.hugeicons.stroke.Codesandbox
+import me.rerere.hugeicons.stroke.ComputerTerminal01
 import me.rerere.hugeicons.stroke.Files02
+import me.rerere.hugeicons.stroke.Folder01
 import me.rerere.hugeicons.stroke.Image02
 import me.rerere.hugeicons.stroke.MusicNote03
 import me.rerere.hugeicons.stroke.Package
 import me.rerere.hugeicons.stroke.Package01
+import me.rerere.hugeicons.stroke.Settings02
 import me.rerere.hugeicons.stroke.Video01
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.data.ai.mcp.McpManager
 import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.datastore.findProvider
+import me.rerere.rikkahub.data.db.entity.WorkspaceEntity
 import me.rerere.rikkahub.data.model.Assistant
 import me.rerere.rikkahub.data.model.Conversation
 import me.rerere.rikkahub.data.model.lastContextTokens
+import me.rerere.rikkahub.data.repository.WorkspaceRepository
 import me.rerere.rikkahub.ui.components.ui.ExtensionSelector
 import me.rerere.rikkahub.ui.components.ui.permission.PermissionCamera
 import me.rerere.rikkahub.ui.components.ui.permission.PermissionManager
@@ -75,6 +90,8 @@ import me.rerere.rikkahub.ui.context.LocalProviders
 import me.rerere.rikkahub.ui.context.LocalSettings
 import me.rerere.rikkahub.ui.hooks.ChatInputState
 import me.rerere.rikkahub.utils.formatNumber
+import me.rerere.workspace.WorkspaceShellStatus
+import org.koin.compose.koinInject
 
 @Composable
 internal fun FilesPicker(
@@ -84,6 +101,7 @@ internal fun FilesPicker(
     mcpManager: McpManager,
     onCompressContext: (additionalPrompt: String, targetTokens: Int, keepRecentMessages: Int) -> Job,
     onUpdateAssistant: (Assistant) -> Unit,
+    onUpdateWorkspaceCwd: (String?) -> Unit = {},
     showInjectionSheet: Boolean,
     onShowInjectionSheetChange: (Boolean) -> Unit,
     showCompressDialog: Boolean,
@@ -101,11 +119,22 @@ internal fun FilesPicker(
     val providers = LocalProviders.current
     val mcpServers = LocalMcpServers.current
     val provider = currentChatModel?.findProvider(providers = providers)
+    val navController = LocalNavController.current
+    val workspaceRepository: WorkspaceRepository = koinInject()
+    val workspaces by workspaceRepository.listFlow().collectAsState(initial = emptyList())
+
+    val boundWorkspace = remember(workspaces, assistant.workspaceId) {
+        workspaces.find { it.id == assistant.workspaceId?.toString() }
+    }
+    val showCwd = boundWorkspace != null && boundWorkspace.shellStatus == WorkspaceShellStatus.READY.name
+    var showCwdSheet by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
@@ -128,6 +157,54 @@ internal fun FilesPicker(
         HorizontalDivider(
             modifier = Modifier.fillMaxWidth()
         )
+
+        // 工作区与工作目录快捷入口
+        WorkspacePickerListItem(
+            assistant = assistant,
+            workspaces = workspaces,
+            onUpdateAssistant = { updated ->
+                if (updated.workspaceId != assistant.workspaceId) {
+                    onUpdateWorkspaceCwd(null)
+                }
+                onUpdateAssistant(updated)
+            },
+            onNavigateToDetail = { id ->
+                onDismiss()
+                navController.navigate(Screen.WorkspaceDetail(id, initialTab = 1))
+            },
+            onNavigateToTerminal = { id ->
+                onDismiss()
+                navController.navigate(Screen.WorkspaceTerminal(id))
+            },
+            onNavigateToManage = {
+                onDismiss()
+                navController.navigate(Screen.Workspaces)
+            },
+        )
+
+        if (showCwd) {
+            ListItem(
+                leadingContent = {
+                    Icon(
+                        imageVector = HugeIcons.Folder01,
+                        contentDescription = stringResource(R.string.workspace_cwd_select_directory),
+                    )
+                },
+                headlineContent = {
+                    Text(
+                        text = conversation.workspaceCwd ?: boundWorkspace?.workspaceDir().orEmpty(),
+                        maxLines = 1,
+                        overflow = TextOverflow.StartEllipsis,
+                    )
+                },
+                trailingContent = {
+                    Icon(HugeIcons.ArrowRight01, contentDescription = null)
+                },
+                modifier = Modifier
+                    .clip(MaterialTheme.shapes.large)
+                    .clickable { showCwdSheet = true },
+            )
+        }
 
         if (mcpServers.isNotEmpty()) {
             McpPickerListItem(
@@ -216,6 +293,18 @@ internal fun FilesPicker(
         )
     }
 
+    if (showCwdSheet && boundWorkspace != null) {
+        WorkspaceCwdPickerSheet(
+            workspaceId = boundWorkspace.id,
+            workspaceDir = boundWorkspace.workspaceDir(),
+            currentCwd = conversation.workspaceCwd,
+            onSelectCwd = { newCwd ->
+                onUpdateWorkspaceCwd(newCwd)
+            },
+            onDismiss = { showCwdSheet = false },
+        )
+    }
+
     // Injection Bottom Sheet
     if (showInjectionSheet) {
         InjectionQuickConfigSheet(
@@ -233,6 +322,90 @@ internal fun FilesPicker(
         }, onConfirm = { additionalPrompt, targetTokens, keepRecentMessages ->
             onCompressContext(additionalPrompt, targetTokens, keepRecentMessages)
         })
+    }
+}
+
+@Composable
+private fun WorkspacePickerListItem(
+    assistant: Assistant,
+    workspaces: List<WorkspaceEntity>,
+    onUpdateAssistant: (Assistant) -> Unit,
+    onNavigateToDetail: (String) -> Unit,
+    onNavigateToTerminal: (String) -> Unit,
+    onNavigateToManage: () -> Unit,
+) {
+    var showSheet by remember { mutableStateOf(false) }
+    val boundWorkspace = remember(workspaces, assistant.workspaceId) {
+        workspaces.find { it.id == assistant.workspaceId?.toString() }
+    }
+
+    ListItem(
+        leadingContent = {
+            Icon(
+                imageVector = HugeIcons.Codesandbox,
+                contentDescription = null,
+            )
+        },
+        headlineContent = {
+            Text(stringResource(R.string.assistant_page_workspace))
+        },
+        supportingContent = {
+            Text(
+                text = boundWorkspace?.name ?: stringResource(R.string.assistant_page_workspace_unbound),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        trailingContent = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (boundWorkspace != null) {
+                    IconButton(onClick = { onNavigateToDetail(boundWorkspace.id) }) {
+                        Icon(
+                            imageVector = HugeIcons.Settings02,
+                            contentDescription = stringResource(R.string.workspace_detail),
+                        )
+                    }
+                    if (boundWorkspace.supportsTerminal()) {
+                        IconButton(onClick = { onNavigateToTerminal(boundWorkspace.id) }) {
+                            Icon(
+                                imageVector = HugeIcons.ComputerTerminal01,
+                                contentDescription = stringResource(R.string.workspace_terminal),
+                            )
+                        }
+                    }
+                } else {
+                    Icon(
+                        imageVector = HugeIcons.ArrowRight01,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        },
+        modifier = Modifier
+            .clip(MaterialTheme.shapes.large)
+            .clickable { showSheet = true },
+    )
+
+    if (showSheet) {
+        WorkspaceSelectSheet(
+            assistant = assistant,
+            workspaces = workspaces,
+            onSelect = { workspaceId ->
+                val newId = workspaceId?.let { Uuid.parse(it) }
+                if (newId != assistant.workspaceId) {
+                    onUpdateAssistant(assistant.copy(workspaceId = newId))
+                }
+                showSheet = false
+            },
+            onManage = {
+                showSheet = false
+                onNavigateToManage()
+            },
+            onDismiss = { showSheet = false },
+        )
     }
 }
 

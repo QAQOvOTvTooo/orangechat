@@ -9,6 +9,8 @@ package me.rerere.rikkahub.ui.pages.extensions.workspace
 import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
+import android.webkit.MimeTypeMap
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -70,7 +72,9 @@ import me.rerere.hugeicons.stroke.ComputerTerminal01
 import me.rerere.hugeicons.stroke.File01
 import me.rerere.hugeicons.stroke.File02
 import me.rerere.hugeicons.stroke.FileDownload
+import me.rerere.hugeicons.stroke.FileEdit
 import me.rerere.hugeicons.stroke.FileImport
+import me.rerere.hugeicons.stroke.FileView
 import me.rerere.hugeicons.stroke.Folder01
 import me.rerere.hugeicons.stroke.MoreVertical
 import me.rerere.hugeicons.stroke.Refresh
@@ -80,6 +84,7 @@ import me.rerere.rikkahub.R
 import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.FormItem
+import me.rerere.rikkahub.ui.components.ui.ImagePreviewDialog
 import me.rerere.rikkahub.ui.components.ui.RikkaConfirmDialog
 import me.rerere.rikkahub.ui.context.LocalNavController
 import me.rerere.rikkahub.ui.context.LocalToaster
@@ -94,18 +99,19 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 @Composable
-fun WorkspaceDetailPage(id: String) {
+fun WorkspaceDetailPage(id: String, initialTab: Int = 1) {
     val navController = LocalNavController.current
     val toaster = LocalToaster.current
     val context = LocalContext.current
     val vm: WorkspaceDetailVM = koinViewModel(parameters = { parametersOf(id) })
     val state by vm.state.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val pagerState = rememberPagerState { 2 }
+    val pagerState = rememberPagerState(initialPage = initialTab.coerceIn(0, 1)) { 2 }
     val scope = rememberCoroutineScope()
 
     var deleteTarget by remember { mutableStateOf<WorkspaceFileEntry?>(null) }
     var showInstallDialog by remember { mutableStateOf(false) }
+    var previewImageUri by remember { mutableStateOf<String?>(null) }
     // 导出目标文件条目：非空时触发系统"另存为"选择器
     var exportTarget by remember { mutableStateOf<WorkspaceFileEntry?>(null) }
 
@@ -146,6 +152,10 @@ fun WorkspaceDetailPage(id: String) {
             } ?: toaster.show(context.getString(R.string.workspace_detail_export_failed))
         }
         exportTarget = null
+    }
+
+    BackHandler(enabled = pagerState.currentPage == 1 && state.currentPath.isNotBlank()) {
+        vm.navigateUp()
     }
 
     Scaffold(
@@ -214,7 +224,44 @@ fun WorkspaceDetailPage(id: String) {
                     state = state,
                     onSwitchArea = { vm.switchArea(it) },
                     onNavigateUp = { vm.navigateUp() },
-                    onOpen = { vm.navigateTo(it.path) },
+                    onOpen = { entry ->
+                        when {
+                            entry.isDirectory -> vm.navigateTo(entry.path)
+
+                            entry.name.substringAfterLast('.').equals("svg", ignoreCase = true) ->
+                                navController.navigate(
+                                    Screen.WorkspaceFileEditor(id, state.area.name, entry.path)
+                                )
+
+                            else -> when (entry.detectFileType()) {
+                                WorkspaceFileType.TEXT -> navController.navigate(
+                                    Screen.WorkspaceFileEditor(id, state.area.name, entry.path)
+                                )
+
+                                WorkspaceFileType.IMAGE -> vm.shareFile(entry, context.cacheDir) { file ->
+                                    previewImageUri = file.absolutePath
+                                }
+
+                                WorkspaceFileType.OTHER -> vm.shareFile(entry, context.cacheDir) { file ->
+                                    val uri = FileProvider.getUriForFile(
+                                        context,
+                                        "${context.packageName}.fileprovider",
+                                        file,
+                                    )
+                                    val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(
+                                        file.extension.lowercase()
+                                    ) ?: "*/*"
+                                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                                        setDataAndType(uri, mime)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    runCatching {
+                                        context.startActivity(Intent.createChooser(intent, null))
+                                    }
+                                }
+                            }
+                        }
+                    },
                     onDelete = { deleteTarget = it },
                     onExport = { entry ->
                         exportTarget = entry
@@ -262,6 +309,13 @@ fun WorkspaceDetailPage(id: String) {
             vm.installRootfs(url)
         },
     )
+
+    previewImageUri?.let { uri ->
+        ImagePreviewDialog(
+            images = listOf(uri),
+            onDismissRequest = { previewImageUri = null },
+        )
+    }
 }
 
 /**
@@ -359,11 +413,7 @@ private fun WorkspaceFilesPage(
             items(state.files, key = { it.path }) { entry ->
                 FileRow(
                     entry = entry,
-                    onClick = {
-                        if (entry.isDirectory) {
-                            onOpen(entry)
-                        }
-                    },
+                    onClick = { onOpen(entry) },
                     onDelete = { onDelete(entry) },
                     onExport = { onExport(entry) },
                     onShare = { onShare(entry) },
@@ -599,6 +649,28 @@ private fun FileRow(
                         onDismissRequest = { menuExpanded = false },
                         border = materialModeBorderStroke(),
                     ) {
+                        val fileType = entry.detectFileType()
+                        if (fileType == WorkspaceFileType.TEXT || entry.name.substringAfterLast('.').equals("svg", ignoreCase = true)) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        stringResource(
+                                            if (state.area == WorkspaceStorageArea.FILES) R.string.edit else R.string.workspace_detail_tool_read_file
+                                        )
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = if (state.area == WorkspaceStorageArea.FILES) HugeIcons.FileEdit else HugeIcons.FileView,
+                                        contentDescription = null,
+                                    )
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    onClick()
+                                },
+                            )
+                        }
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.workspace_detail_export)) },
                             leadingIcon = {

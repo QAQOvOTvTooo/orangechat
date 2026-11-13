@@ -40,6 +40,10 @@ data class WorkspaceEntity(
     @ColumnInfo("tool_approvals", defaultValue = "{}")
     val toolApprovals: String = "{}",
 ) {
+    fun workspaceDir(): String = "/workspace"
+
+    fun supportsTerminal(): Boolean = shellStatus == WorkspaceShellStatus.READY.name
+
     fun toolApprovalOverrides(): Map<String, Boolean> = runCatching {
         JsonInstant.decodeFromString<Map<String, Boolean>>(toolApprovals)
     }.getOrDefault(emptyMap())

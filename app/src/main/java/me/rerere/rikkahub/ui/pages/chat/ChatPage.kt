@@ -681,6 +681,9 @@ private fun ChatPageContent(
                             )
                         )
                     },
+                    onUpdateWorkspaceCwd = { newCwd ->
+                        vm.updateWorkspaceCwd(newCwd)
+                    },
                     onUpdateSearchService = { index ->
                         vm.updateSettings(
                             setting.copy(

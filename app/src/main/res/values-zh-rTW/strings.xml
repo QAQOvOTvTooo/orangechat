@@ -1175,4 +1175,16 @@
   <string name="chat_page_compress_keep_recent_desc">這些訊息不會被壓縮，並保留在摘要之後。設為 0 會壓縮全部內容，最能有效重用提示詞快取；如果對話太長而無法壓縮，請保留更多訊息。</string>
   <string name="setting_provider_page_context_length">上下文長度</string>
   <string name="setting_provider_page_context_length_custom">自訂</string>
+  <string name="assistant_page_workspace">工作區</string>
+  <string name="assistant_page_workspace_unbound">未綁定</string>
+  <string name="workspace_select">選擇工作區</string>
+  <string name="workspace_no_binding">未綁定</string>
+  <string name="workspace_manage">管理工作區</string>
+  <string name="workspace_detail">工作空間詳情</string>
+  <string name="workspace_terminal">工作空間終端</string>
+  <string name="workspace_cwd_select_directory">選擇工作目錄</string>
+  <string name="workspace_cwd_select_desc">為當前會話設置工作目錄</string>
+  <string name="workspace_cwd_no_subdirectories">沒有子目錄</string>
+  <string name="workspace_cwd_reset">重置</string>
+  <string name="workspace_cwd_set">設為CWD</string>
 </resources>

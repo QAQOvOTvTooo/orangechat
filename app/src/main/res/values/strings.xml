@@ -1241,4 +1241,15 @@
   <string name="chat_page_compress_keep_recent_desc">These messages are not compressed and stay after the summary. 0 compresses everything and reuses the prompt cache best; if the conversation is too long to compress, keep more messages.</string>
   <string name="setting_provider_page_context_length">Context Length</string>
   <string name="setting_provider_page_context_length_custom">Custom</string>
+  <string name="assistant_page_workspace">Workspace</string>
+  <string name="assistant_page_workspace_unbound">Not bound</string>
+  <string name="workspace_select">Select Workspace</string>
+  <string name="workspace_manage">Manage Workspaces</string>
+  <string name="workspace_detail">Workspace Details</string>
+  <string name="workspace_terminal">Workspace Terminal</string>
+  <string name="workspace_cwd_select_directory">Select Working Directory</string>
+  <string name="workspace_cwd_select_desc">Set the working directory for the current session</string>
+  <string name="workspace_cwd_no_subdirectories">No subdirectories</string>
+  <string name="workspace_cwd_reset">Reset</string>
+  <string name="workspace_cwd_set">Set as CWD</string>
 </resources>

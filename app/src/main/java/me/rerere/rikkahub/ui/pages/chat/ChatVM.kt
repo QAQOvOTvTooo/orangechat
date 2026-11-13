@@ -319,6 +319,12 @@ class ChatVM(
         }
     }
 
+    fun updateWorkspaceCwd(workspaceCwd: String?) {
+        chatService.updateConversationState(_conversationId) {
+            it.copy(workspaceCwd = workspaceCwd)
+        }
+    }
+
     fun toggleMessageFavorite(node: MessageNode) {
         viewModelScope.launch {
             val currentlyFavorited = favoriteRepository.isNodeFavorited(_conversationId, node.id)

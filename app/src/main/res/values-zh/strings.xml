@@ -1235,4 +1235,15 @@ mDNS 地址：使用 .local 主机名，同一网络中的其他设备可通过�
   <string name="chat_page_compress_keep_recent_desc">这些消息不参与压缩，原样保留在摘要之后。填 0 压缩全部消息，最能命中提示词缓存；对话太长导致压缩失败时可以多保留一些。</string>
   <string name="setting_provider_page_context_length">上下文长度</string>
   <string name="setting_provider_page_context_length_custom">自定义</string>
+  <string name="assistant_page_workspace">工作区</string>
+  <string name="assistant_page_workspace_unbound">未绑定</string>
+  <string name="workspace_select">选择工作区</string>
+  <string name="workspace_manage">管理工作区</string>
+  <string name="workspace_detail">工作空间详情</string>
+  <string name="workspace_terminal">工作空间终端</string>
+  <string name="workspace_cwd_select_directory">选择工作目录</string>
+  <string name="workspace_cwd_select_desc">为当前会话设置工作目录</string>
+  <string name="workspace_cwd_no_subdirectories">没有子目录</string>
+  <string name="workspace_cwd_reset">重置</string>
+  <string name="workspace_cwd_set">设为CWD</string>
 </resources>
