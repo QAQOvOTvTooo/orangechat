@@ -280,9 +280,10 @@ private object ReasoningTranslator {
         val trimmed = rawText.trim()
         if (trimmed.isEmpty()) return@withContext null
 
-        val targetModel = currentModel
-            ?: settings.findModelById(settings.chatModelId)
+        val targetModel = settings.findModelById(settings.translateModeId)
             ?: settings.findModelById(settings.titleModelId)
+            ?: currentModel
+            ?: settings.findModelById(settings.chatModelId)
             ?: return@withContext null
         val provider = targetModel.findProvider(settings.providers) ?: return@withContext null
         val handler = providerManager.getProviderByType(provider)
