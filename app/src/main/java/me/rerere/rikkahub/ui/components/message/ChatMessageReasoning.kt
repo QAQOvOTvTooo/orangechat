@@ -87,7 +87,7 @@ import me.rerere.rikkahub.data.model.AssistantAffectScope
 import me.rerere.rikkahub.data.model.replaceRegexes
 import me.rerere.rikkahub.ui.components.richtext.MarkdownBlock
 import me.rerere.rikkahub.ui.components.ui.ChainOfThoughtScope
-import me.rerere.rikkahub.ui.components.ui.icons.OrangePetalIcon
+import me.rerere.rikkahub.ui.components.ui.icons.rememberLoveLetterIcon
 import me.rerere.rikkahub.ui.context.LocalDisplaySettings
 import me.rerere.rikkahub.ui.context.LocalSettings
 import me.rerere.rikkahub.ui.modifier.shimmer
@@ -598,9 +598,9 @@ fun ChainOfThoughtScope.ChatMessageReasoningStep(
         onExpandedChange = { state.onExpandedChange(it, loading) },
         icon = {
             Icon(
-                imageVector = OrangePetalIcon,
+                imageVector = rememberLoveLetterIcon(MaterialTheme.colorScheme.secondary),
                 contentDescription = null,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(20.dp),
                 tint = Color.Unspecified,
             )
         },

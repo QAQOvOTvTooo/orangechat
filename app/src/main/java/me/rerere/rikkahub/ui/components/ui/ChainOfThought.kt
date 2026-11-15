@@ -232,14 +232,16 @@ fun <T> ChainOfThought(
                 val scope = remember { ChainOfThoughtScopeImpl() }
                 Box(
                     modifier = Modifier.drawBehind {
-                        val x = 12.dp.toPx()
-                        val offsetPx = 18.dp.toPx()
-                        drawLine(
-                            color = lineColor,
-                            start = Offset(x, offsetPx),
-                            end = Offset(x, size.height - offsetPx),
-                            strokeWidth = 1.dp.toPx()
-                        )
+                        if (visibleSteps.size > 1) {
+                            val x = 12.dp.toPx()
+                            val offsetPx = 18.dp.toPx()
+                            drawLine(
+                                color = lineColor,
+                                start = Offset(x, offsetPx),
+                                end = Offset(x, size.height - offsetPx),
+                                strokeWidth = 1.dp.toPx()
+                            )
+                        }
                     }
                 ) {
                     Column {
@@ -413,33 +415,27 @@ private class ChainOfThoughtScopeImpl : ChainOfThoughtScope {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Icon（不透明背景遮住背后的连线）
+                // Icon（透明底展示，尺寸放大到 20.dp 饱满呈现）
                 Box(
                     modifier = Modifier.width(24.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(20.dp)
-                            .background(LocalCardColor.current),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (icon != null) {
-                            Box(
-                                modifier = Modifier.size(14.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                icon()
-                            }
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.onSurfaceVariant)
-                            )
+                    if (icon != null) {
+                        Box(
+                            modifier = Modifier.size(20.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            icon()
                         }
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant)
+                        )
                     }
+                }
                 }
 
                 // Label
