@@ -601,7 +601,7 @@ fun ChainOfThoughtScope.ChatMessageReasoningStep(
                 imageVector = OrangePetalIcon,
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.secondary,
+                tint = Color.Unspecified,
             )
         },
         label = {
